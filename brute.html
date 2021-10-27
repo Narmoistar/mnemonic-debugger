@@ -18,7 +18,7 @@ function combine(input, len, start) {
 		val = result.join(" ");
 		mn_decode_pass(val, function(obj) {
 			container.show();
-			
+
 			console.log("decode: " + val);
 			found = true;
 			brute_candidates.html(brute_candidates.html() + val + "<br>");
@@ -45,6 +45,7 @@ async function find_checksums(wordlist)
 {
 	brute_debug = $('#brute-debug');
 	brute_candidates = $('#brute-candidates');
+	brute_checksums = $('#brute-checksums');
 
 	var wl = wordlist.split(" ");
 	var truewl = [];
@@ -53,7 +54,8 @@ async function find_checksums(wordlist)
 		if (mn_v2_words.includes(wl[i]) || mn_v3_words.includes(wl[i]))
 		truewl.push(wl[i]);
 	}
-	for (let i = truewl.length; i >= 15; i--)
+	if (maxlength > truewl.length) { maxlength = truewl.length; }
+	for (let i = maxlength; i >= minlength; i--)
 	{
 		if (found == false)
 		{
@@ -66,8 +68,32 @@ async function find_checksums(wordlist)
 			await sleep(1000);
 		}
 	}
+	brute_debug.text("Finished.");
 }
 
+var minlength;
+var maxlength;
+var showinvalid;
+function startBrute()
+{
+	container = $('#mnemonic-result-container');
+	error_container = $('#mnemonic-result-error');
+
+	container.hide();
+	error_container.hide();
+
+	container.find('.guid-result-container').hide();
+
+	var val = $.trim($('input[name="mnemonic"]').val());
+
+	if (val.length == 0)
+	return;
+
+	minlength = $.trim($('input[name="minlen"]').val());
+	maxlength = $.trim($('input[name="maxlen"]').val());
+	showinvalid = $('input[name="showinvalid"]').prop('checked');
+	find_checksums(val);
+}
 </script>
 <script>
 // https://login.blockchain.com/legacy-pages/js/mnemonic/wallet-forgot-password.js
@@ -75,7 +101,8 @@ var container;
 var error_container;
 var brute_debug;
 var brute_candidates;
-
+var brute_checksums;
+/*
 $(document).ready(function() {
 
 	$('input[name="mnemonic"]').change(function() {
@@ -91,10 +118,11 @@ $(document).ready(function() {
 
 		if (val.length == 0)
 		return;
-		
+
 		find_checksums(val);
 	});
 });
+*/
 </script>
 <script>
 // https://login.blockchain.com/legacy-pages/js/mnemonic/mnemonic.js
@@ -460,6 +488,10 @@ function decodeV2WordList(wlist, testChecksum, success, error) {
 	if (testChecksum(str_bytes)) {
 		success({password : UTF8.bytesToString(str_bytes)});
 	} else {
+		if (showinvalid)
+		{
+			brute_checksums.html(brute_checksums.html() + wlist + "<br>");
+		}
 		error('Invalid Checksum');
 	}
 }
@@ -483,6 +515,10 @@ function decodeV3456WordList(wlist, version, testChecksum, success, error) {
 			});
 
 			if (!testChecksum(str_bytes)) {
+				if (showinvalid)
+				{
+					brute_checksums.html(brute_checksums.html() + wlist + "<br>");
+				}
 				error('Invalid Checksum');
 				return;
 			}
@@ -841,8 +877,17 @@ If you have a legacy wallet recovery mnemonic saved enter it below to view the p
 <p>
 <input type="text" style="width:100%" name="mnemonic" placeholder="Enter Mnemonic Here...">
 </p>
+<p>
+Minimum Words: <input type="text" style="width:10%" name="minlen" value="15">&nbsp;
+Maximum Words: <input type="text" style="width:10%" name="maxlen" value="99">&nbsp;
+Show Invalid Checksum: <input type="checkbox" name="showinvalid">
+</p>
+<p>
+<input type="button" value="Start" onclick="javascript:startBrute()">
+</p>
 <h3 id="brute-debug"></h3>
 <h3 id="brute-candidates"></h3>
+<h5 id="brute-checksums"></h5>
 <p id="mnemonic-result-error" class="well" style="display:none"></p>
 <p id="debug-output" class="well" style="display:none"></p>
 <div id="mnemonic-result-container" style="display:none">
